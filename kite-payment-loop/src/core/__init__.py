@@ -1,0 +1,1 @@
+# This file initializes the core package, allowing for easier imports of the payment loop functionality.
