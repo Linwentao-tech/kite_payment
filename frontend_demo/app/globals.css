@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  background: radial-gradient(circle at top, #f4f1ea 0%, #f8f3ea 45%, #efe5d7 100%);
+  color: #1b1b1b;
+}
