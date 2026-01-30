@@ -8,9 +8,11 @@ type Props = {
   agentAddress: string
   sessionDailyBudget: string
   sessionPerTxBudget: string
+  sessionTimeWindowSec: string
   setAgentAddress: (value: string) => void
   setSessionDailyBudget: (value: string) => void
   setSessionPerTxBudget: (value: string) => void
+  setSessionTimeWindowSec: (value: string) => void
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void
   isPending: boolean
   error?: { message?: string } | null
@@ -25,9 +27,11 @@ export default function CreateSessionCard({
   agentAddress,
   sessionDailyBudget,
   sessionPerTxBudget,
+  sessionTimeWindowSec,
   setAgentAddress,
   setSessionDailyBudget,
   setSessionPerTxBudget,
+  setSessionTimeWindowSec,
   onSubmit,
   isPending,
   error,
@@ -67,6 +71,16 @@ export default function CreateSessionCard({
             />
           </label>
         </div>
+        <label className="grid gap-1 text-sm">
+          时间窗口（秒）
+          <input
+            value={sessionTimeWindowSec}
+            onChange={(event) => setSessionTimeWindowSec(event.target.value)}
+            placeholder="默认 86400（一天）"
+            className="w-full rounded-md border border-gray-200 px-3 py-2"
+          />
+          <span className="text-xs text-gray-500">默认 86400（一天）</span>
+        </label>
         <button
           type="submit"
           disabled={!isConnected || isPending || !aaWalletAddress}

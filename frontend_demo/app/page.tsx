@@ -41,6 +41,7 @@ export default function Home() {
   const [agentAddress, setAgentAddress] = useState('')
   const [sessionDailyBudget, setSessionDailyBudget] = useState('100')
   const [sessionPerTxBudget, setSessionPerTxBudget] = useState('10')
+  const [sessionTimeWindowSec, setSessionTimeWindowSec] = useState('86400')
   const [sessionTxHash, setSessionTxHash] = useState<string | null>(null)
   const [sessionValidationError, setSessionValidationError] = useState<
     string | null
@@ -121,6 +122,7 @@ export default function Home() {
     setSessionTxHash(null)
     setLastSessionId(null)
     setSessionValidationError(null)
+    setSessionTimeWindowSec('86400')
     setTopupAmount('0.1')
     setTopupTxHash(null)
     setTransferRecipient('')
@@ -281,6 +283,7 @@ export default function Home() {
             agentAddress={agentAddress}
             sessionDailyBudget={sessionDailyBudget}
             sessionPerTxBudget={sessionPerTxBudget}
+            sessionTimeWindowSec={sessionTimeWindowSec}
             setAgentAddress={(value) => {
               setAgentAddress(value)
               setSessionValidationError(null)
@@ -293,6 +296,10 @@ export default function Home() {
               setSessionPerTxBudget(value)
               setSessionValidationError(null)
             }}
+            setSessionTimeWindowSec={(value) => {
+              setSessionTimeWindowSec(value)
+              setSessionValidationError(null)
+            }}
             onSubmit={async (event) => {
               event.preventDefault()
               if (!isConnected) return
@@ -301,8 +308,12 @@ export default function Home() {
               setSessionTxHash(null)
               setSessionValidationError(null)
               const nowSec = Math.floor(Date.now() / 1000)
-              const dayStart = Math.floor(nowSec / 86400) * 86400
-              const dayWindow = BigInt(86400)
+              const rawWindow = Number(sessionTimeWindowSec || '86400')
+              const windowSec =
+                Number.isFinite(rawWindow) && rawWindow > 0 ? rawWindow : 86400
+              const dayStart =
+                Math.floor(nowSec / windowSec) * windowSec
+              const dayWindow = BigInt(windowSec)
               const perTxWindow = BigInt(0)
               const daily = parseUnits(sessionDailyBudget || '0', 18)
               const perTx = parseUnits(sessionPerTxBudget || '0', 18)

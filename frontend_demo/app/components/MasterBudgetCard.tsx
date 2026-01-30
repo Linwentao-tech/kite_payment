@@ -65,8 +65,10 @@ export default function MasterBudgetCard({
           <input
             value={timeWindowSec}
             onChange={(event) => setTimeWindowSec(event.target.value)}
+            placeholder="默认 86400（一天）"
             className="w-full rounded-md border border-gray-200 px-3 py-2"
           />
+          <span className="text-xs text-gray-500">默认 86400（一天）</span>
         </label>
         <button
           type="submit"
