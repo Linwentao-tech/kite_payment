@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 
   try {
     const sdk = new GokiteAASDK(NETWORK, RPC_URL, BUNDLER_URL)
-    const address = sdk.getAccountAddress(owner)
+    const address = sdk.getAccountAddress(owner) as `0x${string}`
     const bytecode = await client.getBytecode({ address })
     return Response.json({ address, deployed: !!bytecode })
   } catch (error) {
