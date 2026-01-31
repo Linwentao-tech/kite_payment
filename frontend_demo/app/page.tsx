@@ -1,15 +1,84 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { isAddress, parseUnits } from 'viem'
+import { formatUnits, isAddress, parseUnits } from 'viem'
 import { useConnection, usePublicClient, useWriteContract } from 'wagmi'
 import WalletHeader from './components/WalletHeader'
-import GenerateWalletCard from './components/GenerateWalletCard'
+import WalletSetupCard from './components/WalletSetupCard'
 import MasterBudgetCard from './components/MasterBudgetCard'
 import CreateSessionCard from './components/CreateSessionCard'
-import TopupCard from './components/TopupCard'
 import ExecuteTransferCard from './components/ExecuteTransferCard'
 import { decodeCustomError, extractErrorDetails } from './utils/errors'
+
+const budgetAbi = [
+  {
+    type: 'function',
+    name: 'setMasterBudgetRules',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'timeWindows', type: 'uint256[]' },
+      { name: 'budgets', type: 'uint160[]' },
+    ],
+    outputs: [],
+  },
+] as const
+const sessionAbi = [
+  {
+    type: 'function',
+    name: 'createSession',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'sessionId', type: 'bytes32' },
+      { name: 'agent', type: 'address' },
+      {
+        name: 'rules',
+        type: 'tuple[]',
+        components: [
+          { name: 'timeWindow', type: 'uint256' },
+          { name: 'budget', type: 'uint160' },
+          { name: 'initialWindowStartTime', type: 'uint96' },
+          { name: 'targetProviders', type: 'bytes32[]' },
+        ],
+      },
+    ],
+    outputs: [],
+  },
+] as const
+const erc20Abi = [
+  {
+    type: 'function',
+    name: 'transfer',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'to', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    outputs: [{ name: '', type: 'bool' }],
+  },
+  {
+    type: 'function',
+    name: 'balanceOf',
+    stateMutability: 'view',
+    inputs: [{ name: 'owner', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+] as const
+const aaTokenAbi = [
+  {
+    type: 'function',
+    name: 'addSupportedToken',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'token', type: 'address' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'isTokenSupported',
+    stateMutability: 'view',
+    inputs: [{ name: 'token', type: 'address' }],
+    outputs: [{ name: '', type: 'bool' }],
+  },
+] as const
 
 export default function Home() {
   const connection = useConnection()
@@ -465,6 +534,24 @@ export default function Home() {
   const topupToken = '0x0fF5393387ad2f9f691FD6Fd28e07E3969e27e63'
   const [topupAmount, setTopupAmount] = useState('0.1')
   const [topupTxHash, setTopupTxHash] = useState<string | null>(null)
+  const [topupStatus, setTopupStatus] = useState<
+    'idle' | 'pending' | 'success' | 'failed'
+  >('idle')
+  const [aaBalance, setAaBalance] = useState<string>('0')
+  const [aaBalanceStatus, setAaBalanceStatus] = useState<
+    'idle' | 'loading' | 'ready' | 'error'
+  >('idle')
+  const [aaBalanceError, setAaBalanceError] = useState<string | null>(null)
+  const [tokenSupported, setTokenSupported] = useState<boolean | null>(null)
+  const [tokenSupportStatus, setTokenSupportStatus] = useState<
+    'idle' | 'loading' | 'ready' | 'error'
+  >('idle')
+  const [tokenSupportError, setTokenSupportError] = useState<string | null>(null)
+  const [addTokenTxHash, setAddTokenTxHash] = useState<string | null>(null)
+  const {
+    mutateAsync: addTokenAsync,
+    isPending: isAddTokenPending,
+  } = useWriteContract()
   const {
     mutateAsync: topupAsync,
     isPending: isTopupPending,
@@ -500,6 +587,52 @@ export default function Home() {
     }
   }
 
+  const fetchAaBalance = async () => {
+    if (!publicClient) return
+    if (!aaWalletAddress || !isAddress(aaWalletAddress)) return
+    if (!isAddress(topupToken)) return
+    setAaBalanceStatus('loading')
+    setAaBalanceError(null)
+    try {
+      const balance = (await publicClient.readContract({
+        address: topupToken as `0x${string}`,
+        abi: erc20Abi,
+        functionName: 'balanceOf',
+        args: [aaWalletAddress as `0x${string}`],
+      })) as bigint
+      setAaBalance(formatUnits(balance, 18))
+      setAaBalanceStatus('ready')
+    } catch (err) {
+      setAaBalanceStatus('error')
+      setAaBalanceError(
+        err instanceof Error ? err.message : '读取余额失败。',
+      )
+    }
+  }
+
+  const fetchTokenSupport = async () => {
+    if (!publicClient) return
+    if (!aaWalletAddress || !isAddress(aaWalletAddress)) return
+    if (!isAddress(topupToken)) return
+    setTokenSupportStatus('loading')
+    setTokenSupportError(null)
+    try {
+      const supported = (await publicClient.readContract({
+        address: aaWalletAddress as `0x${string}`,
+        abi: aaTokenAbi,
+        functionName: 'isTokenSupported',
+        args: [topupToken as `0x${string}`],
+      })) as boolean
+      setTokenSupported(supported)
+      setTokenSupportStatus('ready')
+    } catch (err) {
+      setTokenSupportStatus('error')
+      setTokenSupportError(
+        err instanceof Error ? err.message : '读取代币状态失败。',
+      )
+    }
+  }
+
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -511,6 +644,55 @@ export default function Home() {
     if (aaWalletStatus !== 'idle') return
     fetchAaWallet()
   }, [mounted, isConnected, aaWalletAddress, aaWalletStatus])
+
+  useEffect(() => {
+    if (!mounted || !isConnected) return
+    if (!aaWalletAddress || !isAddress(aaWalletAddress)) return
+    fetchAaBalance()
+    fetchTokenSupport()
+  }, [mounted, isConnected, aaWalletAddress, topupToken, publicClient])
+
+  useEffect(() => {
+    if (!publicClient || !topupTxHash) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash: topupTxHash as `0x${string}`,
+        })
+        if (cancelled) return
+        setTopupStatus(receipt.status === 'success' ? 'success' : 'failed')
+        fetchAaBalance()
+      } catch {
+        if (cancelled) return
+        setTopupStatus('failed')
+        fetchAaBalance()
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [publicClient, topupTxHash])
+
+  useEffect(() => {
+    if (!publicClient || !addTokenTxHash) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        await publicClient.waitForTransactionReceipt({
+          hash: addTokenTxHash as `0x${string}`,
+        })
+        if (cancelled) return
+        fetchTokenSupport()
+      } catch {
+        if (cancelled) return
+        fetchTokenSupport()
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [publicClient, addTokenTxHash])
 
   useEffect(() => {
     if (!mounted || isConnected) return
@@ -526,6 +708,14 @@ export default function Home() {
     setSessionTimeWindowSec('86400')
     setTopupAmount('0.1')
     setTopupTxHash(null)
+    setTopupStatus('idle')
+    setAaBalance('0')
+    setAaBalanceStatus('idle')
+    setAaBalanceError(null)
+    setTokenSupported(null)
+    setTokenSupportStatus('idle')
+    setTokenSupportError(null)
+    setAddTokenTxHash(null)
     setTransferRecipient('')
     setTransferAmount('0.01')
     setValidForSec('3600')
@@ -630,53 +820,6 @@ export default function Home() {
 
   if (!mounted) return null
 
-  const budgetAbi = [
-    {
-      type: 'function',
-      name: 'setMasterBudgetRules',
-      stateMutability: 'nonpayable',
-      inputs: [
-        { name: 'timeWindows', type: 'uint256[]' },
-        { name: 'budgets', type: 'uint160[]' },
-      ],
-      outputs: [],
-    },
-  ] as const
-  const sessionAbi = [
-    {
-      type: 'function',
-      name: 'createSession',
-      stateMutability: 'nonpayable',
-      inputs: [
-        { name: 'sessionId', type: 'bytes32' },
-        { name: 'agent', type: 'address' },
-        {
-          name: 'rules',
-          type: 'tuple[]',
-          components: [
-            { name: 'timeWindow', type: 'uint256' },
-            { name: 'budget', type: 'uint160' },
-            { name: 'initialWindowStartTime', type: 'uint96' },
-            { name: 'targetProviders', type: 'bytes32[]' },
-          ],
-        },
-      ],
-      outputs: [],
-    },
-  ] as const
-  const erc20Abi = [
-    {
-      type: 'function',
-      name: 'transfer',
-      stateMutability: 'nonpayable',
-      inputs: [
-        { name: 'to', type: 'address' },
-        { name: 'amount', type: 'uint256' },
-      ],
-      outputs: [{ name: '', type: 'bool' }],
-    },
-  ] as const
-
   return (
     <main className="min-h-screen bg-[#f6efe7] px-6 py-8">
       <div className="mx-auto max-w-6xl">
@@ -691,11 +834,65 @@ export default function Home() {
         ) : null}
 
         <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <GenerateWalletCard
+          <WalletSetupCard
             isConnected={isConnected}
             status={aaWalletStatus}
             address={aaWalletAddress}
             onGenerate={fetchAaWallet}
+            tokenSupported={tokenSupported}
+            tokenSupportStatus={tokenSupportStatus}
+            tokenSupportError={tokenSupportError}
+            onAddToken={async () => {
+              if (!isConnected) return
+              if (!aaWalletAddress || !isAddress(aaWalletAddress)) return
+              if (!isAddress(topupToken)) return
+              setAddTokenTxHash(null)
+              try {
+                const hash = await addTokenAsync({
+                  address: aaWalletAddress as `0x${string}`,
+                  abi: aaTokenAbi,
+                  functionName: 'addSupportedToken',
+                  args: [topupToken as `0x${string}`],
+                })
+                setAddTokenTxHash(hash)
+              } catch {
+                // handled by error UI
+              }
+            }}
+            isAddTokenPending={isAddTokenPending}
+            addTokenTxHash={addTokenTxHash}
+            balanceLabel={aaBalance}
+            balanceStatus={aaBalanceStatus}
+            balanceError={aaBalanceError}
+            topupStatus={topupStatus}
+            topupToken={topupToken}
+            topupAmount={topupAmount}
+            setTopupAmount={setTopupAmount}
+            onTopup={async (event) => {
+              event.preventDefault()
+              if (!isConnected) return
+              if (!aaWalletAddress || !isAddress(aaWalletAddress)) return
+              if (!isAddress(topupToken)) return
+              setTopupTxHash(null)
+              setTopupStatus('pending')
+              try {
+                const amount = parseUnits(topupAmount || '0', 18)
+                const hash = await topupAsync({
+                  address: topupToken as `0x${string}`,
+                  abi: erc20Abi,
+                  functionName: 'transfer',
+                  args: [aaWalletAddress as `0x${string}`, amount],
+                })
+                setTopupTxHash(hash)
+                if (!publicClient) setTopupStatus('success')
+              } catch {
+                setTopupStatus('failed')
+                // handled by error UI
+              }
+            }}
+            isTopupPending={isTopupPending}
+            topupError={topupError}
+            topupTxHash={topupTxHash}
           />
           <MasterBudgetCard
             isConnected={isConnected}
@@ -746,115 +943,88 @@ export default function Home() {
             validationError={masterValidationError}
             txHash={txHash}
           />
-          <CreateSessionCard
-            isConnected={isConnected}
-            aaWalletAddress={aaWalletAddress}
-            agentAddress={agentAddress}
-            sessionDailyBudget={sessionDailyBudget}
-            sessionPerTxBudget={sessionPerTxBudget}
-            sessionTimeWindowSec={sessionTimeWindowSec}
-            setAgentAddress={(value) => {
-              setAgentAddress(value)
-              setSessionValidationError(null)
-            }}
-            setSessionDailyBudget={(value) => {
-              setSessionDailyBudget(value)
-              setSessionValidationError(null)
-            }}
-            setSessionPerTxBudget={(value) => {
-              setSessionPerTxBudget(value)
-              setSessionValidationError(null)
-            }}
-            setSessionTimeWindowSec={(value) => {
-              setSessionTimeWindowSec(value)
-              setSessionValidationError(null)
-            }}
-            onSubmit={async (event) => {
-              event.preventDefault()
-              if (!isConnected) return
-              if (!aaWalletAddress || !isAddress(aaWalletAddress)) return
-              if (!isAddress(agentAddress)) return
-              setSessionTxHash(null)
-              setSessionValidationError(null)
-              const nowSec = Math.floor(Date.now() / 1000)
-              const rawWindow = Number(sessionTimeWindowSec || '86400')
-              const windowSec =
-                Number.isFinite(rawWindow) && rawWindow > 0 ? rawWindow : 86400
-              const dayStart =
-                Math.floor(nowSec / windowSec) * windowSec
-              const dayWindow = BigInt(windowSec)
-              const perTxWindow = BigInt(0)
-              const daily = parseUnits(sessionDailyBudget || '0', 18)
-              const perTx = parseUnits(sessionPerTxBudget || '0', 18)
-              if (daily < perTx) {
-                setSessionValidationError('每日预算不能小于单笔预算。')
-                return
-              }
-              const sessionId = `0x${crypto
-                .getRandomValues(new Uint8Array(32))
-                .reduce((acc, byte) => acc + byte.toString(16).padStart(2, '0'), '')}` as `0x${string}`
-              const rules = [
-                {
-                  timeWindow: dayWindow,
-                  budget: daily,
-                  initialWindowStartTime: BigInt(dayStart),
-                  targetProviders: [],
-                },
-                {
-                  timeWindow: perTxWindow,
-                  budget: perTx,
-                  initialWindowStartTime: BigInt(0),
-                  targetProviders: [],
-                },
-              ]
-              try {
-                const hash = await createSessionAsync({
-                  address: aaWalletAddress as `0x${string}`,
-                  abi: sessionAbi,
-                  functionName: 'createSession',
-                  args: [sessionId, agentAddress as `0x${string}`, rules],
-                })
-                setSessionTxHash(hash)
-                setLastSessionId(sessionId)
-              } catch {
-                // handled by error UI
-              }
-            }}
-            isPending={isSessionPending}
-            error={sessionError}
-            validationError={sessionValidationError}
-            txHash={sessionTxHash}
-            lastSessionId={lastSessionId}
-          />
-          <TopupCard
-            isConnected={isConnected}
-            aaWalletAddress={aaWalletAddress}
-            topupToken={topupToken}
-            topupAmount={topupAmount}
-            setTopupAmount={setTopupAmount}
-            onSubmit={async (event) => {
-              event.preventDefault()
-              if (!isConnected) return
-              if (!aaWalletAddress || !isAddress(aaWalletAddress)) return
-              if (!isAddress(topupToken)) return
-              setTopupTxHash(null)
-              try {
-                const amount = parseUnits(topupAmount || '0', 18)
-                const hash = await topupAsync({
-                  address: topupToken as `0x${string}`,
-                  abi: erc20Abi,
-                  functionName: 'transfer',
-                  args: [aaWalletAddress as `0x${string}`, amount],
-                })
-                setTopupTxHash(hash)
-              } catch {
-                // handled by error UI
-              }
-            }}
-            isPending={isTopupPending}
-            error={topupError}
-            txHash={topupTxHash}
-          />
+          <div className="lg:col-span-2">
+            <CreateSessionCard
+              isConnected={isConnected}
+              aaWalletAddress={aaWalletAddress}
+              agentAddress={agentAddress}
+              sessionDailyBudget={sessionDailyBudget}
+              sessionPerTxBudget={sessionPerTxBudget}
+              sessionTimeWindowSec={sessionTimeWindowSec}
+              setAgentAddress={(value) => {
+                setAgentAddress(value)
+                setSessionValidationError(null)
+              }}
+              setSessionDailyBudget={(value) => {
+                setSessionDailyBudget(value)
+                setSessionValidationError(null)
+              }}
+              setSessionPerTxBudget={(value) => {
+                setSessionPerTxBudget(value)
+                setSessionValidationError(null)
+              }}
+              setSessionTimeWindowSec={(value) => {
+                setSessionTimeWindowSec(value)
+                setSessionValidationError(null)
+              }}
+              onSubmit={async (event) => {
+                event.preventDefault()
+                if (!isConnected) return
+                if (!aaWalletAddress || !isAddress(aaWalletAddress)) return
+                if (!isAddress(agentAddress)) return
+                setSessionTxHash(null)
+                setSessionValidationError(null)
+                const nowSec = Math.floor(Date.now() / 1000)
+                const rawWindow = Number(sessionTimeWindowSec || '86400')
+                const windowSec =
+                  Number.isFinite(rawWindow) && rawWindow > 0 ? rawWindow : 86400
+                const dayStart =
+                  Math.floor(nowSec / windowSec) * windowSec
+                const dayWindow = BigInt(windowSec)
+                const perTxWindow = BigInt(0)
+                const daily = parseUnits(sessionDailyBudget || '0', 18)
+                const perTx = parseUnits(sessionPerTxBudget || '0', 18)
+                if (daily < perTx) {
+                  setSessionValidationError('每日预算不能小于单笔预算。')
+                  return
+                }
+                const sessionId = `0x${crypto
+                  .getRandomValues(new Uint8Array(32))
+                  .reduce((acc, byte) => acc + byte.toString(16).padStart(2, '0'), '')}` as `0x${string}`
+                const rules = [
+                  {
+                    timeWindow: dayWindow,
+                    budget: daily,
+                    initialWindowStartTime: BigInt(dayStart),
+                    targetProviders: [],
+                  },
+                  {
+                    timeWindow: perTxWindow,
+                    budget: perTx,
+                    initialWindowStartTime: BigInt(0),
+                    targetProviders: [],
+                  },
+                ]
+                try {
+                  const hash = await createSessionAsync({
+                    address: aaWalletAddress as `0x${string}`,
+                    abi: sessionAbi,
+                    functionName: 'createSession',
+                    args: [sessionId, agentAddress as `0x${string}`, rules],
+                  })
+                  setSessionTxHash(hash)
+                  setLastSessionId(sessionId)
+                } catch {
+                  // handled by error UI
+                }
+              }}
+              isPending={isSessionPending}
+              error={sessionError}
+              validationError={sessionValidationError}
+              txHash={sessionTxHash}
+              lastSessionId={lastSessionId}
+            />
+          </div>
           <div className="lg:col-span-2 grid grid-cols-1 gap-6 lg:grid-cols-2">
             <ExecuteTransferCard
               isConnected={isConnected}
@@ -882,9 +1052,9 @@ export default function Home() {
                 若交给审计公司审计后仍有新漏洞，欢迎提交审计报告用于优化数据，
                 我们提供 20%-50% 支付成本返利。
               </p>
-                <div className="mt-4 grid gap-2 text-sm text-amber-900">
-                  <div>审计文件上传</div>
-                  <label className="flex items-center justify-between rounded-md border border-amber-100 bg-white px-3 py-2 text-sm">
+              <div className="mt-4 grid gap-2 text-sm text-amber-900">
+                <div>审计文件上传</div>
+                <label className="flex items-center justify-between rounded-md border border-amber-100 bg-white px-3 py-2 text-sm">
                     <span className="text-amber-900">Choose file</span>
                     <span className="text-gray-500 text-sm">
                       {rebateFile ? rebateFile.name : 'No file chosen'}
