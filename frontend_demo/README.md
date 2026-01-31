@@ -70,3 +70,20 @@ npm run dev
 - `app/components/ExecuteTransferCard.tsx`：自动执行转账 UI
 - `app/api/agent-execute/route.ts`：服务端 agent 执行
 - `app/api/agent-sign/route.ts`：服务端 agent 签名
+
+支付框架（按现在代码实际实现）
+
+1) Owner 创建 Session  
+   - 授权规则（时间窗 / 日预算 / 单笔预算）写入 AA 账户  
+   - 这是“授权”，不是实际支付
+
+2) Agent 发起执行（服务端）  
+   - 前端调用 `/api/agent-execute`  
+   - 服务端用 `AGENT_PRIVATE_KEY` 生成 EIP-712 授权签名  
+   - 然后用同一个 agent 私钥直接发送交易  
+   - 交易调用 `executeTransferWithAuthorization`，把资金从 AA 转出
+
+3) 链上校验  
+   - Session 规则（预算 / 时间窗）校验  
+   - 授权签名校验  
+   - 通过则转账；失败则 revert
