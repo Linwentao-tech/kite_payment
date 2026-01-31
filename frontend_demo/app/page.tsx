@@ -520,6 +520,9 @@ export default function Home() {
   const [topupStatus, setTopupStatus] = useState<
     'idle' | 'pending' | 'success' | 'failed'
   >('idle')
+  const [topupErrorMessage, setTopupErrorMessage] = useState<string | null>(
+    null,
+  )
   const [aaBalance, setAaBalance] = useState<string>('0')
   const [aaBalanceStatus, setAaBalanceStatus] = useState<
     'idle' | 'loading' | 'ready' | 'error'
@@ -528,7 +531,6 @@ export default function Home() {
   const {
     mutateAsync: topupAsync,
     isPending: isTopupPending,
-    error: topupError,
   } = useWriteContract()
   const isExecutePending = executeStatus === 'pending'
 
@@ -638,6 +640,7 @@ export default function Home() {
     setTopupAmount('0.1')
     setTopupTxHash(null)
     setTopupStatus('idle')
+    setTopupErrorMessage(null)
     setAaBalance('0')
     setAaBalanceStatus('idle')
     setAaBalanceError(null)
@@ -778,6 +781,7 @@ export default function Home() {
               if (!isAddress(topupToken)) return
               setTopupTxHash(null)
               setTopupStatus('pending')
+              setTopupErrorMessage(null)
               try {
                 const amount = parseUnits(topupAmount || '0', 18)
                 const hash = await topupAsync({
@@ -788,13 +792,17 @@ export default function Home() {
                 })
                 setTopupTxHash(hash)
                 if (!publicClient) setTopupStatus('success')
-              } catch {
+              } catch (err) {
                 setTopupStatus('failed')
-                // handled by error UI
+                const decoded = decodeCustomError(err)
+                const details = extractErrorDetails(err)
+                setTopupErrorMessage(
+                  decoded ?? details ?? '用户拒绝了请求。',
+                )
               }
             }}
             isTopupPending={isTopupPending}
-            topupError={topupError}
+            topupError={topupErrorMessage ? { message: topupErrorMessage } : null}
             topupTxHash={topupTxHash}
           />
           <MasterBudgetCard
