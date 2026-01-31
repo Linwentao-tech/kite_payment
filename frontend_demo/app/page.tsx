@@ -163,6 +163,9 @@ export default function Home() {
   const [valuePayStatus, setValuePayStatus] = useState<
     'idle' | 'pending' | 'success'
   >('idle')
+  const [valueAuditTier, setValueAuditTier] = useState<
+    'simple' | 'balanced' | 'strict'
+  >('balanced')
   const [demoPaymentStatus, setDemoPaymentStatus] = useState<
     'idle' | 'pending' | 'success' | 'failed'
   >('idle')
@@ -1750,6 +1753,38 @@ export default function Home() {
                       同意并付款
                     </button>
                   ) : null}
+                </div>
+                <div className="mt-3 rounded-md border border-amber-100 bg-amber-50/40 px-3 py-2 text-xs text-amber-900">
+                  审计预算由上方审计 Agent 配置决定。
+                </div>
+                <div className="mt-3">
+                  <div className="text-xs font-semibold text-amber-900">
+                    审计强度
+                  </div>
+                  <div className="mt-2 grid gap-2 md:grid-cols-3">
+                    {[
+                      { id: 'simple', label: '简单' },
+                      { id: 'balanced', label: '平衡' },
+                      { id: 'strict', label: '严格' },
+                    ].map((tier) => (
+                      <button
+                        key={tier.id}
+                        type="button"
+                        onClick={() =>
+                          setValueAuditTier(
+                            tier.id as 'simple' | 'balanced' | 'strict',
+                          )
+                        }
+                        className={`rounded-md border px-3 py-2 text-xs font-semibold ${
+                          valueAuditTier === tier.id
+                            ? 'border-amber-400 bg-amber-50 text-amber-900'
+                            : 'border-amber-100 bg-white text-amber-900'
+                        }`}
+                      >
+                        {tier.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 {valueStatus === 'proposal' ? (
                   <div className="mt-3 rounded-md border border-amber-100 bg-amber-50/40 px-3 py-2 text-xs text-amber-900">
