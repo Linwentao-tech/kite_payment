@@ -39,7 +39,7 @@ export default function MasterBudgetCard({
     <section className="rounded-2xl border border-amber-100/80 bg-white/90 p-6 shadow-[0_20px_50px_rgba(120,83,42,0.08)] backdrop-blur">
       <h2 className="text-lg font-semibold text-amber-900">设置主预算规则</h2>
       <p className="mt-1 text-sm text-gray-600">
-        owner 连接钱包后设置 AA 钱包的全局预算规则。
+        owner 连接钱包后设置 AA 钱包的全局预算规则。这里设置好限额，就不用担心预算一下全花光了哦~
       </p>
       <form className="mt-4 grid gap-3 w-full" onSubmit={onSubmit}>
         <div className="grid grid-cols-2 gap-3">

@@ -876,7 +876,25 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#f6efe7] px-6 py-8">
       <div className="mx-auto max-w-6xl">
-        <header className="flex flex-wrap items-center justify-end gap-4">
+        <header className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <img
+              src="/auditops-logo.svg"
+              alt="AuditOps"
+              className="h-24 w-auto"
+            />
+            <div>
+              <div
+                className="text-3xl font-extrabold tracking-[0.02em] text-amber-900 lg:text-4xl"
+                style={{ fontFamily: 'Sora, ui-sans-serif, system-ui' }}
+              >
+                AUDITOPS
+              </div>
+              <div className="mt-1 text-lg font-semibold text-amber-700">
+                Securing Code, Orchestrating Value.
+              </div>
+            </div>
+          </div>
           <WalletHeader />
         </header>
 
@@ -1134,7 +1152,7 @@ export default function Home() {
             </div>
             {!isDemoEnabled ? (
               <div className="mt-4 rounded-xl border border-dashed border-amber-200 bg-amber-50/30 p-6 text-sm text-amber-800">
-                请先创建 Session，然后才能使用 Demo 展示区。
+                先把 GitHub 代码导入进来吧，你可以泡杯咖啡等我一会儿～
               </div>
             ) : null}
             <form className="mt-4 rounded-xl border border-dashed border-amber-200 bg-amber-50/30 p-6">
@@ -1177,9 +1195,9 @@ export default function Home() {
                 <div className="text-sm font-semibold text-amber-900">
                   支付面板
                 </div>
-                <p className="mt-1 text-xs text-gray-600">
-                  选择审查档位或启用高级设置自定义参数。
-                </p>
+              <p className="mt-1 text-xs text-gray-600">
+                选择审查档位或启用高级设置自定义参数。这直接决定审计所需费用与审计强度。
+              </p>
                 <div className="mt-4 grid gap-3 md:grid-cols-3">
                   {[
                     { id: 'simple', label: '简单', desc: '快速检查 + 核心风险' },
@@ -1294,7 +1312,7 @@ export default function Home() {
                     </span>
                   ) : (
                     <span className="text-xs text-amber-700">
-                      请先确认配置。
+                      确认好配置，你的合约宝宝将面临最严厉的审计父亲~
                     </span>
                   )}
                 </div>
@@ -1712,10 +1730,10 @@ export default function Home() {
           </section>
           <section className="rounded-2xl border border-amber-100/80 bg-white/90 p-6 text-sm text-gray-700 shadow-[0_20px_50px_rgba(120,83,42,0.08)] backdrop-blur lg:col-span-2">
             <div className="text-lg font-semibold text-amber-900">
-              网络价值发现
+              不止合约审计！把合约需求给我们，我们在 Kite AI 为你搭建一键解决方案！
             </div>
             <p className="mt-1 text-sm text-gray-600">
-              输入需求后拆解 Agent 功能链、预算核算与方案选择。
+              输入需求自动拆解出 Agent 功能链、构建出方案并给出方案预估价。
             </p>
             <div className="mt-4 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
               <div className="rounded-xl border border-amber-100 bg-white/80 p-4">
@@ -1725,7 +1743,7 @@ export default function Home() {
                     value={valuePrompt}
                     onChange={(event) => setValuePrompt(event.target.value)}
                     rows={4}
-                    placeholder="例如：对新协议做快速审计，预算有限但希望覆盖权限与资金流风险"
+                    placeholder="例如：写一个能按周自动分账、支持紧急暂停、并具备可升级机制的合约"
                     className="w-full rounded-md border border-amber-100 bg-white px-3 py-2 text-sm"
                   />
                 </label>

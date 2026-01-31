@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="AuditOps">
+  <defs>
+    <linearGradient id="ao-g" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#c06a2c"/>
+      <stop offset="1" stop-color="#f2c177"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="120" height="120" rx="20" fill="#fffaf0"/>
+  <g transform="translate(18 18)">
+    <rect x="0" y="0" width="84" height="84" rx="16" fill="url(#ao-g)"/>
+    <path d="M22 60l14-28 14 28" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <circle cx="50" cy="36" r="6" fill="#ffffff"/>
+  </g>
+  <!-- text removed -->
+</svg>
