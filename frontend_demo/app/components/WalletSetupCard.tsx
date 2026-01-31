@@ -7,12 +7,6 @@ type Props = {
   status: 'idle' | 'loading' | 'deployed' | 'counterfactual'
   address: string
   onGenerate: () => void
-  tokenSupported: boolean | null
-  tokenSupportStatus: 'idle' | 'loading' | 'ready' | 'error'
-  tokenSupportError: string | null
-  onAddToken: () => void
-  isAddTokenPending: boolean
-  addTokenTxHash: string | null
   balanceLabel: string
   balanceStatus: 'idle' | 'loading' | 'ready' | 'error'
   balanceError: string | null
@@ -31,12 +25,6 @@ export default function WalletSetupCard({
   status,
   address,
   onGenerate,
-  tokenSupported,
-  tokenSupportStatus,
-  tokenSupportError,
-  onAddToken,
-  isAddTokenPending,
-  addTokenTxHash,
   balanceLabel,
   balanceStatus,
   balanceError,
@@ -82,51 +70,6 @@ export default function WalletSetupCard({
           AA 钱包：{address}
         </div>
       ) : null}
-
-      <div className="mt-4 rounded-md border border-amber-100 bg-amber-50/40 px-3 py-2 text-sm text-amber-900">
-        代币支持状态：
-        <span className="ml-2 font-semibold">
-          {tokenSupportStatus === 'loading'
-            ? '加载中...'
-            : tokenSupportStatus === 'error'
-            ? tokenSupportError ?? '读取失败'
-            : tokenSupported
-            ? '已支持'
-            : '未支持'}
-        </span>
-      </div>
-      <div className="mt-2 flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={onAddToken}
-          disabled={
-            !isConnected ||
-            !address ||
-            tokenSupported === true ||
-            isAddTokenPending
-          }
-          className={`rounded-md border border-gray-200 bg-white px-3.5 py-2 text-sm ${
-            !isConnected ||
-            !address ||
-            tokenSupported === true ||
-            isAddTokenPending
-              ? 'cursor-not-allowed'
-              : 'cursor-pointer'
-          }`}
-        >
-          {isAddTokenPending ? '添加中...' : '添加支持代币'}
-        </button>
-        {addTokenTxHash ? (
-          <a
-            href={`https://testnet.kitescan.ai/tx/${addTokenTxHash}`}
-            target="_blank"
-            rel="noreferrer"
-            className="text-sm text-green-700 break-all underline decoration-amber-400 underline-offset-4"
-          >
-            已提交：{addTokenTxHash}
-          </a>
-        ) : null}
-      </div>
 
       <div className="mt-3 rounded-md border border-amber-100 bg-amber-50/40 px-3 py-2 text-sm text-amber-900">
         余额（Test USD / USDT）：

@@ -63,23 +63,6 @@ const erc20Abi = [
     outputs: [{ name: '', type: 'uint256' }],
   },
 ] as const
-const aaTokenAbi = [
-  {
-    type: 'function',
-    name: 'addSupportedToken',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'token', type: 'address' }],
-    outputs: [],
-  },
-  {
-    type: 'function',
-    name: 'isTokenSupported',
-    stateMutability: 'view',
-    inputs: [{ name: 'token', type: 'address' }],
-    outputs: [{ name: '', type: 'bool' }],
-  },
-] as const
-
 export default function Home() {
   const connection = useConnection()
   const { isConnected } = connection
@@ -542,16 +525,6 @@ export default function Home() {
     'idle' | 'loading' | 'ready' | 'error'
   >('idle')
   const [aaBalanceError, setAaBalanceError] = useState<string | null>(null)
-  const [tokenSupported, setTokenSupported] = useState<boolean | null>(null)
-  const [tokenSupportStatus, setTokenSupportStatus] = useState<
-    'idle' | 'loading' | 'ready' | 'error'
-  >('idle')
-  const [tokenSupportError, setTokenSupportError] = useState<string | null>(null)
-  const [addTokenTxHash, setAddTokenTxHash] = useState<string | null>(null)
-  const {
-    mutateAsync: addTokenAsync,
-    isPending: isAddTokenPending,
-  } = useWriteContract()
   const {
     mutateAsync: topupAsync,
     isPending: isTopupPending,
@@ -610,29 +583,6 @@ export default function Home() {
     }
   }
 
-  const fetchTokenSupport = async () => {
-    if (!publicClient) return
-    if (!aaWalletAddress || !isAddress(aaWalletAddress)) return
-    if (!isAddress(topupToken)) return
-    setTokenSupportStatus('loading')
-    setTokenSupportError(null)
-    try {
-      const supported = (await publicClient.readContract({
-        address: aaWalletAddress as `0x${string}`,
-        abi: aaTokenAbi,
-        functionName: 'isTokenSupported',
-        args: [topupToken as `0x${string}`],
-      })) as boolean
-      setTokenSupported(supported)
-      setTokenSupportStatus('ready')
-    } catch (err) {
-      setTokenSupportStatus('error')
-      setTokenSupportError(
-        err instanceof Error ? err.message : '读取代币状态失败。',
-      )
-    }
-  }
-
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -649,7 +599,6 @@ export default function Home() {
     if (!mounted || !isConnected) return
     if (!aaWalletAddress || !isAddress(aaWalletAddress)) return
     fetchAaBalance()
-    fetchTokenSupport()
   }, [mounted, isConnected, aaWalletAddress, topupToken, publicClient])
 
   useEffect(() => {
@@ -675,26 +624,6 @@ export default function Home() {
   }, [publicClient, topupTxHash])
 
   useEffect(() => {
-    if (!publicClient || !addTokenTxHash) return
-    let cancelled = false
-    ;(async () => {
-      try {
-        await publicClient.waitForTransactionReceipt({
-          hash: addTokenTxHash as `0x${string}`,
-        })
-        if (cancelled) return
-        fetchTokenSupport()
-      } catch {
-        if (cancelled) return
-        fetchTokenSupport()
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [publicClient, addTokenTxHash])
-
-  useEffect(() => {
     if (!mounted || isConnected) return
     setAaWalletAddress('')
     setAaWalletStatus('idle')
@@ -712,10 +641,6 @@ export default function Home() {
     setAaBalance('0')
     setAaBalanceStatus('idle')
     setAaBalanceError(null)
-    setTokenSupported(null)
-    setTokenSupportStatus('idle')
-    setTokenSupportError(null)
-    setAddTokenTxHash(null)
     setTransferRecipient('')
     setTransferAmount('0.01')
     setValidForSec('3600')
@@ -839,28 +764,6 @@ export default function Home() {
             status={aaWalletStatus}
             address={aaWalletAddress}
             onGenerate={fetchAaWallet}
-            tokenSupported={tokenSupported}
-            tokenSupportStatus={tokenSupportStatus}
-            tokenSupportError={tokenSupportError}
-            onAddToken={async () => {
-              if (!isConnected) return
-              if (!aaWalletAddress || !isAddress(aaWalletAddress)) return
-              if (!isAddress(topupToken)) return
-              setAddTokenTxHash(null)
-              try {
-                const hash = await addTokenAsync({
-                  address: aaWalletAddress as `0x${string}`,
-                  abi: aaTokenAbi,
-                  functionName: 'addSupportedToken',
-                  args: [topupToken as `0x${string}`],
-                })
-                setAddTokenTxHash(hash)
-              } catch {
-                // handled by error UI
-              }
-            }}
-            isAddTokenPending={isAddTokenPending}
-            addTokenTxHash={addTokenTxHash}
             balanceLabel={aaBalance}
             balanceStatus={aaBalanceStatus}
             balanceError={aaBalanceError}
