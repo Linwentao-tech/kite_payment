@@ -1,6 +1,7 @@
 <div align="center">
 
 # 🪁 AuditOps
+
 ### 基于 Kite AI 的智能合约审计与价值网络自构建 Agent 集群
 
 ![Status](https://img.shields.io/badge/Status-MVP_Demo-success?style=for-the-badge)
@@ -31,28 +32,33 @@
 
 在Kite链，既“盖楼”，又“修管道”，这就是我们的愿景。
 
-
 ---
 
 ## 💡 核心方案
 
 ### 1. 🛡️ 模块化 Multi-Agent 审计矩阵 (The "Audit" Core)
+
 我们摒弃了单体审计的模式，采用 **Map-Reduce** 架构将审计任务拆解为多个并行子任务：
-* **漏洞扫描 Agent**：专注于重入攻击、整数溢出等常见漏洞。
-* **经济模型 Agent**：分析代币经济学与 DeFi 交互风险。
-* **权限分析 Agent**：检测中心化风险与权限后门。
-* **依赖与集成 Agent**：检测外部合约、预言机、跨链桥风险。
-* **汇总/裁决 Agent**：整合各方数据，输出结构化的高质量审计报告。
+
+- **漏洞扫描 Agent**：专注于重入攻击、整数溢出等常见漏洞。
+- **经济模型 Agent**：分析代币经济学与 DeFi 交互风险。
+- **权限分析 Agent**：检测中心化风险与权限后门。
+- **依赖与集成 Agent**：检测外部合约、预言机、跨链桥风险。
+- **汇总/裁决 Agent**：整合各方数据，输出结构化的高质量审计报告。
 
 ### 2. 💳 丝滑的 A2A 微支付 (The "Ops" Engine)
+
 基于 **ERC-4337 账户抽象理念** 与 **Session Keys**，我们解决了“授权”与“安全”的矛盾，实现了支付侧的自动化：
-* **主预算控制 (Master Budget)**：用户设定全局的每日限额与单笔限额，确保资金总池安全。
-* **会话授权 (Session Authorization)**：通过 EIP-712 签名，授权特定 Agent 在**限定时间**和**限定预算**内自动执行交易。这使得 Agent 可以像人类一样“刷卡消费”，而无需用户对每一笔微支付进行签名确认。
+
+- **主预算控制 (Master Budget)**：用户设定全局的每日限额与单笔限额，确保资金总池安全。
+- **会话授权 (Session Authorization)**：通过 EIP-712 签名，授权特定 Agent 在**限定时间**和**限定预算**内自动执行交易。这使得 Agent 可以像人类一样“刷卡消费”，而无需用户对每一笔微支付进行签名确认。
 
 ### 3. 🔄 价值闭环与返利机制 (Rebate Loop)
+
 我们设计了一个基于数据的商业闭环：
-* **漏洞悬赏**：如果审计后的用户合约发往审计公司后发现审计遗漏的漏洞，可提交报告并获得USDT返利（20%-50% 支付成本）。
-* **防注入攻击**：用户提交的数据需经过 Pending 审核期，确认为真后反哺给 Agent 网络进行训练，建立不断进化的安全数据库。
+
+- **漏洞悬赏**：如果审计后的用户合约发往审计公司后发现审计遗漏的漏洞，可提交报告并获得USDT返利（20%-50% 支付成本）。
+- **防注入攻击**：用户提交的数据需经过 Pending 审核期，确认为真后反哺给 Agent 网络进行训练，建立不断进化的安全数据库。
 
 ---
 
@@ -61,18 +67,27 @@
 **AuditOps** 是一个集成了真实链上交互与服务端代执行的完整全栈 Demo。
 
 ### 核心技术栈
-* **前端框架**: Next.js 16.1.6 (App Router) + React 19 + Tailwind CSS v4
-* **Web3 交互**: Wagmi 3.x + Viem 2.x + @tanstack/react-query
-* **AA 基础设施**: gokite-aa-sdk (负责 AA 地址计算、UserOp 封装与部署)
-* **服务端逻辑**: Next.js Route Handlers (API) 处理私钥管理与代执行
-* **网络环境**: KiteAI Testnet (ChainID: 2368)
 
-### 交互逻辑流程
-1.  **初始化**: 用户连接钱包，系统根据 Owner 地址计算 Counterfactual AA 地址。
-2.  **信任锚点**: 用户上链设置 Master Budget，并签署 Session Key 授权给 Agent。
-3.  **业务执行**: 用户触发审计请求，前端模拟 Multi-Agent 并行工作流。
-4.  **自动结算**: 审计完成后，Agent 使用服务端私钥 + Session 签名，向 AA 合约发起 `executeTransferWithAuthorization`。
-5.  **验证上链**: 链上合约验证 Session 有效性、预算剩余额度及签名正确性，完成转账并解锁报告。
+- **前端框架**: Next.js 16.1.6 (App Router) + React 19 + Tailwind CSS v4
+- **Web3 交互**: Wagmi 3.x + Viem 2.x + @tanstack/react-query
+- **AA 基础设施**: gokite-aa-sdk (负责 AA 地址计算、UserOp 封装与部署)
+- **服务端逻辑**: Next.js Route Handlers (API) 处理私钥管理与代执行
+- **网络环境**: KiteAI Testnet (ChainID: 2368)
+
+### 交互逻辑流程（Demo 实现）
+
+1. **初始化**：用户连接钱包，系统根据 owner 地址计算 AA 地址并展示部署状态。
+2. **设置规则**：用户上链设置 Master Budget（全局日/单笔预算）。
+3. **创建 Session**：用户创建 Session，授权 agent 在限定预算/时间窗内执行。
+4. **充值 AA**：用户向 AA 钱包转入测试 USDT 作为可用余额。
+5. **审计与支付**：前端模拟多 Agent 工作流，结算时调用服务端 `/api/agent-execute`。
+6. **链上执行**：服务端用 AGENT_PRIVATE_KEY 生成 EIP-712 授权签名并发送 `executeTransferWithAuthorization`。
+7. **链上校验**：合约校验 Session 规则 + 签名有效性，通过则转账并解锁报告。
+
+说明（Kite 生态）
+
+- 在 Kite 生态中，agent 地址通常由 owner 地址通过 BIP32 派生。
+- 本 Demo 为简化流程，使用普通 EOA 地址代替派生的 agent 地址，所以需要提供一个 AGENT_PRIVATE_KEY。
 
 ---
 
@@ -92,25 +107,30 @@
 ## 🚀 快速开始
 
 ### 前置要求
-* Node.js >= 18
-* pnpm 或 yarn
-* 持有 KiteAI Testnet 测试币的钱包
+
+- Node.js >= 18
+- npm
+- 持有 KiteAI Testnet 测试币的钱包
 
 ### 安装步骤
 
 1. **克隆仓库**
+
    ```bash
-   git clone [https://github.com/your-username/auditops.git](https://github.com/your-username/auditops.git)
-   cd auditops
+   git clone https://github.com/Linwentao-tech/kite_payment.git
+   cd frontend_demo
    ```
 
 2. **安装依赖**
+
    ```bash
-   pnpm install
+   # 确保当前在 frontend_demo 目录
+   npm install
    ```
 
 3. **配置环境**
-   复制 `.env.example` 为 `.env.local` 并填入 Agent 私钥：
+   在 `.env.local` 中填入 Agent 私钥：
+
    ```env
    # Agent 私钥 (用于 Demo 演示代执行，无需 0x 前缀)
    AGENT_PRIVATE_KEY=your_private_key_here
@@ -118,7 +138,8 @@
 
 4. **启动开发环境**
    ```bash
-   pnpm dev
+   # 确保当前在 frontend_demo 目录
+   npm run dev
    ```
 
 ---
@@ -126,19 +147,17 @@
 ## 🗺️ 路线图 (Roadmap)
 
 ### Phase 1: MVP (当前阶段) ✅
-* [x] 最小化 AA 钱包实现与界面展示
-* [x] 基于 Session Key 的预算控制体系
-* [x] 模块化审计流程的前端仿真与结构化输出
-* [x] 核心支付链路跑通 (Agent-to-Agent Payment)
+
+- [x] 最小化 AA 钱包实现与界面展示
+- [x] 基于 Session Key 的预算控制体系
+- [x] 模块化审计流程的前端仿真与结构化输出
+- [x] 核心支付链路跑通 (Agent-to-Agent Payment)
 
 ### Phase 2: 网络优化与图数据 (The Graph) 🚧
-* [ ] **支付链路路由优化**：利用图算法在多个服务商中寻找性价比最高、速度最快的 Agent 组合链路。
-* [ ] **审计子网权重提升计划**：分析Agent价值网络，并通过主动构建价值连接，与高中心性、高权重节点或具有强社区性节点建立价值链，增加本子网营收，并增加整个Kite AI价值网络的GDP。
-* [ ] **真实 LLM 集成**：将前端模拟的审计逻辑替换为真实的 RAG + LLM 后端服务。
 
-### Phase 3: 生态基础设施 (Ecosystem)
-* [ ] **开放 API 协议**：允许第三方 Agent 接入本支付网络，共享 Session 授权标准。
-* [ ] **数据市场化**：将审计数据与漏洞库上链，形成可交易的数据资产。
+- [ ] **支付链路路由优化**：利用图算法在多个服务商中寻找性价比最高、速度最快的 Agent 组合链路。
+- [ ] **审计子网权重提升计划**：分析Agent价值网络，并通过主动构建价值连接，与高中心性、高权重节点或具有强社区性节点建立价值链，增加本子网营收，并增加整个Kite AI价值网络的GDP。
+- [ ] **真实 LLM 集成**：将前端模拟的审计逻辑替换为真实的 RAG + LLM 后端服务。
 
 ---
 
