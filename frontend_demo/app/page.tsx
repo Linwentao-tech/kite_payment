@@ -144,6 +144,29 @@ export default function Home() {
   >('idle')
   const [demoFinalSummaryElapsed, setDemoFinalSummaryElapsed] = useState(0)
   const [demoFinalSummaryDuration, setDemoFinalSummaryDuration] = useState(0)
+  const [valuePrompt, setValuePrompt] = useState('')
+  const [valueFeedback, setValueFeedback] = useState('')
+  const [valueStatus, setValueStatus] = useState<
+    'idle' | 'thinking' | 'proposal' | 'feedback' | 'approved' | 'paid'
+  >('idle')
+  const [valueNextStatus, setValueNextStatus] = useState<
+    'proposal' | 'feedback'
+  >('proposal')
+  const [valueNextIndex, setValueNextIndex] = useState(0)
+  const [valueProgress, setValueProgress] = useState(0)
+  const [valueElapsed, setValueElapsed] = useState(0)
+  const [valueDuration, setValueDuration] = useState(0)
+  const [valuePlan, setValuePlan] = useState<string[]>([])
+  const [valueBudget, setValueBudget] = useState<string | null>(null)
+  const [valueOption, setValueOption] = useState<string | null>(null)
+  const [valueLogText, setValueLogText] = useState('')
+  const [valuePayStatus, setValuePayStatus] = useState<
+    'idle' | 'pending' | 'success'
+  >('idle')
+  const [valueAuditTier, setValueAuditTier] = useState<
+    'simple' | 'balanced' | 'strict'
+  >('balanced')
+  const [valueBudgetInput, setValueBudgetInput] = useState('200')
   const [demoPaymentStatus, setDemoPaymentStatus] = useState<
     'idle' | 'pending' | 'success' | 'failed'
   >('idle')
@@ -266,6 +289,53 @@ export default function Home() {
       '[scan] validating final severity distribution...',
       '[thinking] i need to compile final structured report sections...',
       '[report] publishing final audit summary...',
+    ],
+    [],
+  )
+  const valueChainTemplates = useMemo(
+    () => [
+      {
+        label: 'Fastest',
+        budget: '189 USDT',
+        steps: [
+          'Requirement Parsing Agent',
+          'Risk Classification Agent',
+          'Rapid Audit Agent',
+          'Summary & Recommendation Agent',
+        ],
+      },
+      {
+        label: 'Lowest Cost',
+        budget: '128 USDT',
+        steps: [
+          'Requirement Parsing Agent',
+          'Coverage Agent',
+          'Lightweight Audit Agent',
+        ],
+      },
+      {
+        label: 'Highest Score',
+        budget: '238 USDT',
+        steps: [
+          'Requirement Parsing Agent',
+          'Static Analysis Agent',
+          'Economic Model Agent',
+          'Governance Agent',
+          'Integration Review Agent',
+        ],
+      },
+    ],
+    [],
+  )
+  const valueStageLogs = useMemo(
+    () => [
+      '[init] parsing user requirements and scope constraints...',
+      '[think] decomposing into executable agent capabilities...',
+      '[scan] searching available agents and resource pools...',
+      '[compose] assembling candidate agent chains...',
+      '[calc] estimating budget and time...',
+      '[rank] ranking by cost, speed, and overall score...',
+      '[report] generating recommended plan and budget...',
     ],
     [],
   )
@@ -489,6 +559,61 @@ export default function Home() {
     demoPaymentRecipient,
     publicClient,
   ])
+
+  useEffect(() => {
+    if (valueStatus !== 'thinking') return
+    const charIntervalMs = 60
+    const fullText = valueStageLogs.join('\n')
+    const duration = Math.max(4000, fullText.length * charIntervalMs)
+    setValueDuration(duration)
+    setValueElapsed(0)
+    setValueProgress(0)
+    let cancelled = false
+    const startAt = Date.now()
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startAt
+      if (cancelled) return
+      setValueElapsed(Math.min(duration, elapsed))
+      setValueProgress(Math.min(100, Math.round((elapsed / duration) * 100)))
+      if (elapsed >= duration) {
+        clearInterval(interval)
+        const option = valueChainTemplates[valueNextIndex] ?? null
+        setValuePlan(option ? option.steps : [])
+        setValueBudget(option ? option.budget : null)
+        setValueOption(option ? option.label : null)
+        setValueStatus(valueNextStatus)
+      }
+    }, 120)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [valueStatus, valueStageLogs, valueChainTemplates, valueNextIndex, valueNextStatus])
+
+  useEffect(() => {
+    if (valueStatus !== 'proposal' && valueStatus !== 'feedback') return
+    const fullText =
+      valueStatus === 'proposal'
+        ? valueStageLogs.join('\n')
+        : `${valueStageLogs.join('\n')}\n[feedback] ${
+            valueFeedback || 'Received feedback, recalculating plan...'
+          }`
+    const visibleChars = Math.min(
+      fullText.length,
+      Math.floor(valueElapsed / 60),
+    )
+    setValueLogText(fullText.slice(0, visibleChars))
+  }, [valueStatus, valueElapsed, valueStageLogs, valueFeedback])
+
+  useEffect(() => {
+    if (valueStatus !== 'approved') return
+    setValuePayStatus('pending')
+    const timer = setTimeout(() => {
+      setValuePayStatus('success')
+      setValueStatus('paid')
+    }, 2400)
+    return () => clearTimeout(timer)
+  }, [valueStatus])
 
   useEffect(() => {
     if (demoDeepAuditStatus !== 'done') {
@@ -1584,6 +1709,209 @@ export default function Home() {
                 ) : null}
               </div>
             ) : null}
+          </section>
+          <section className="rounded-2xl border border-amber-100/80 bg-white/90 p-6 text-sm text-gray-700 shadow-[0_20px_50px_rgba(120,83,42,0.08)] backdrop-blur lg:col-span-2">
+            <div className="text-lg font-semibold text-amber-900">
+              网络价值发现
+            </div>
+            <p className="mt-1 text-sm text-gray-600">
+              输入需求后拆解 Agent 功能链、预算核算与方案选择。
+            </p>
+            <div className="mt-4 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+              <div className="rounded-xl border border-amber-100 bg-white/80 p-4">
+                <label className="grid gap-2 text-sm text-amber-900">
+                  需求输入
+                  <textarea
+                    value={valuePrompt}
+                    onChange={(event) => setValuePrompt(event.target.value)}
+                    rows={4}
+                    placeholder="例如：对新协议做快速审计，预算有限但希望覆盖权限与资金流风险"
+                    className="w-full rounded-md border border-amber-100 bg-white px-3 py-2 text-sm"
+                  />
+                </label>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    disabled={!valuePrompt || valueStatus === 'thinking'}
+                    onClick={() => {
+                      if (!valuePrompt) return
+                      setValueNextIndex(0)
+                      setValueNextStatus('proposal')
+                      setValueStatus('thinking')
+                      setValueFeedback('')
+                      setValuePlan([])
+                      setValueBudget(null)
+                      setValueOption(null)
+                      setValuePayStatus('idle')
+                      setValueLogText('')
+                    }}
+                    className={`rounded-md border border-amber-200 bg-white px-4 py-2 text-xs font-semibold text-amber-900 ${
+                      !valuePrompt || valueStatus === 'thinking'
+                        ? 'cursor-not-allowed opacity-60'
+                        : 'cursor-pointer'
+                    }`}
+                  >
+                    开始思考
+                  </button>
+                  {valueStatus === 'proposal' || valueStatus === 'feedback' ? (
+                    <button
+                      type="button"
+                      onClick={() => setValueStatus('approved')}
+                      className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700"
+                    >
+                      同意并付款
+                    </button>
+                  ) : null}
+                </div>
+                <div className="mt-3 rounded-md border border-amber-100 bg-amber-50/40 px-3 py-2 text-xs text-amber-900">
+                  审计预算由上方审计 Agent 配置决定。
+                </div>
+                <div className="mt-3">
+                  <div className="text-xs font-semibold text-amber-900">
+                    审计强度
+                  </div>
+                  <div className="mt-2 grid gap-2 md:grid-cols-3">
+                    {[
+                      { id: 'simple', label: '简单' },
+                      { id: 'balanced', label: '平衡' },
+                      { id: 'strict', label: '严格' },
+                    ].map((tier) => (
+                      <button
+                        key={tier.id}
+                        type="button"
+                        onClick={() =>
+                          setValueAuditTier(
+                            tier.id as 'simple' | 'balanced' | 'strict',
+                          )
+                        }
+                        className={`rounded-md border px-3 py-2 text-xs font-semibold ${
+                          valueAuditTier === tier.id
+                            ? 'border-amber-400 bg-amber-50 text-amber-900'
+                            : 'border-amber-100 bg-white text-amber-900'
+                        }`}
+                      >
+                        {tier.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <div className="text-xs font-semibold text-amber-900">
+                    预算（USDT）
+                  </div>
+                  <input
+                    value={valueBudgetInput}
+                    onChange={(event) => setValueBudgetInput(event.target.value)}
+                    placeholder="请输入预算，如 200"
+                    className="mt-2 w-full rounded-md border border-amber-100 bg-white px-3 py-2 text-xs"
+                  />
+                </div>
+                {valueStatus === 'proposal' ? (
+                  <div className="mt-3 rounded-md border border-amber-100 bg-amber-50/40 px-3 py-2 text-xs text-amber-900">
+                    推荐方案：{valueOption ?? '-'}，预算估算：
+                    {valueBudgetInput
+                      ? valueBudgetInput
+                      : valueBudget ?? '-'}
+                  </div>
+                ) : null}
+                {valueStatus === 'proposal' || valueStatus === 'feedback' ? (
+                  <div className="mt-3">
+                    <label className="grid gap-2 text-xs text-gray-700">
+                      如果不同意，请给出反馈
+                      <input
+                        value={valueFeedback}
+                        onChange={(event) => setValueFeedback(event.target.value)}
+                        placeholder="例如：希望更低预算/更快时间"
+                        className="w-full rounded-md border border-amber-100 bg-white px-3 py-2 text-xs"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      disabled={!valueFeedback}
+                      onClick={() => {
+                        if (!valueFeedback) return
+                        setValueNextIndex(1)
+                        setValueNextStatus('feedback')
+                        setValueStatus('thinking')
+                        setValuePlan([])
+                        setValueBudget(null)
+                        setValueOption(null)
+                        setValuePayStatus('idle')
+                        setValueLogText('')
+                      }}
+                      className={`mt-2 rounded-md border border-amber-200 bg-white px-3 py-2 text-xs font-semibold text-amber-900 ${
+                        !valueFeedback ? 'cursor-not-allowed opacity-60' : ''
+                      }`}
+                    >
+                      反馈并重新方案
+                    </button>
+                  </div>
+                ) : null}
+                {valueStatus === 'paid' ? (
+                  <div className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                    付款完成，已进入执行队列。
+                  </div>
+                ) : null}
+              </div>
+              <div className="rounded-xl border border-amber-100 bg-white/80 p-4">
+                <div className="text-xs font-semibold text-amber-900">
+                  Agent 功能链与预算
+                </div>
+                <div className="mt-2 text-xs text-gray-600">
+                  {valuePlan.length > 0 ? '已生成最优功能链' : '等待生成方案'}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {valuePlan.length > 0
+                    ? valuePlan.map((step) => (
+                        <span
+                          key={step}
+                          className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs text-amber-900"
+                        >
+                          {step}
+                        </span>
+                      ))
+                    : null}
+                </div>
+                <div className="mt-3 rounded-md border border-amber-100 bg-amber-50/40 px-3 py-2 text-xs text-amber-900">
+                  预算估算：{valueBudget ?? '-'}
+                </div>
+                <div className="mt-3 rounded-md border border-amber-100 bg-white p-3 font-mono text-[11px] leading-relaxed text-amber-900">
+                  <div className="whitespace-pre-wrap opacity-80">
+                    {valueStatus === 'idle'
+                      ? '[waiting] awaiting user prompt...'
+                      : valueStatus === 'thinking'
+                      ? valueStageLogs.join('\n')
+                          .slice(0, Math.floor(valueElapsed / 60))
+                      : valueLogText}
+                    {valueStatus === 'thinking' ? (
+                      <span className="inline-block h-3 w-1 animate-pulse bg-amber-700 align-middle" />
+                    ) : null}
+                  </div>
+                </div>
+                <div className="mt-3 h-2 w-full rounded-full bg-amber-100">
+                  <div
+                    className="h-2 rounded-full bg-amber-600 transition-[width] duration-500"
+                    style={{ width: `${valueProgress}%` }}
+                  />
+                </div>
+                <div className="mt-2 text-xs text-gray-600">
+                  {valueStatus === 'thinking'
+                    ? `方案生成中 ${valueProgress}%`
+                    : valueStatus === 'approved'
+                    ? '等待支付确认'
+                    : valueStatus === 'paid'
+                    ? '已进入执行'
+                    : '准备就绪'}
+                </div>
+                {valuePayStatus !== 'idle' ? (
+                  <div className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                    {valuePayStatus === 'pending'
+                      ? '付款处理中...'
+                      : '付款成功。'}
+                  </div>
+                ) : null}
+              </div>
+            </div>
           </section>
           <section className="rounded-2xl border border-amber-100/80 bg-white/90 p-6 text-sm text-gray-700 shadow-[0_20px_50px_rgba(120,83,42,0.08)] backdrop-blur lg:col-span-2">
             <div className="text-lg font-semibold text-amber-900">
