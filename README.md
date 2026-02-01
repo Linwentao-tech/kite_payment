@@ -124,7 +124,7 @@
    # 确保当前在 frontend_demo 目录
    npm install
    ```
-说明（Kite 生态）
+  说明（Kite 生态）
 
 - 在 Kite 生态中，agent 地址通常由 owner 地址通过 BIP32 派生。
 - 本 Demo 为简化流程，使用普通 EOA 地址代替派生的 agent 地址，所以需要提供一个 AGENT_PRIVATE_KEY。
