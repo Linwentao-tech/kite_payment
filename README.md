@@ -84,10 +84,7 @@
 6. **链上执行**：服务端用 AGENT_PRIVATE_KEY 生成 EIP-712 授权签名并发送 `executeTransferWithAuthorization`。
 7. **链上校验**：合约校验 Session 规则 + 签名有效性，通过则转账并解锁报告。
 
-说明（Kite 生态）
 
-- 在 Kite 生态中，agent 地址通常由 owner 地址通过 BIP32 派生。
-- 本 Demo 为简化流程，使用普通 EOA 地址代替派生的 agent 地址，所以需要提供一个 AGENT_PRIVATE_KEY。
 
 ---
 
@@ -127,6 +124,10 @@
    # 确保当前在 frontend_demo 目录
    npm install
    ```
+说明（Kite 生态）
+
+- 在 Kite 生态中，agent 地址通常由 owner 地址通过 BIP32 派生。
+- 本 Demo 为简化流程，使用普通 EOA 地址代替派生的 agent 地址，所以需要提供一个 AGENT_PRIVATE_KEY。
 
 3. **配置环境**
    在 `.env.local` 中填入 Agent 私钥：
