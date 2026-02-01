@@ -10,6 +10,13 @@ import CreateSessionCard from './components/CreateSessionCard'
 import ExecuteTransferCard from './components/ExecuteTransferCard'
 import { decodeCustomError, extractErrorDetails } from './utils/errors'
 
+const safeJsonStringify = (value: unknown) =>
+  JSON.stringify(
+    value,
+    (_, current) =>
+      typeof current === 'bigint' ? current.toString() : current,
+  )
+
 const budgetAbi = [
   {
     type: 'function',
@@ -189,6 +196,12 @@ export default function Home() {
   const [rebateStatus, setRebateStatus] = useState<
     'idle' | 'pending' | 'success' | 'failed'
   >('idle')
+  const masterErrorMessage = masterError
+    ? extractErrorDetails(masterError)
+    : null
+  const sessionErrorMessage = sessionError
+    ? extractErrorDetails(sessionError)
+    : null
   const demoAgentLogs = useMemo(
     () => [
       [
@@ -504,17 +517,14 @@ export default function Home() {
         const executeResponse = await fetch('/api/agent-execute', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(
-            {
-              aaWallet: aaWalletAddress,
-              sessionId: lastSessionId,
-              recipient: demoPaymentRecipient,
-              amount: demoPaymentAmount,
-              validBefore,
-              nonce,
-            },
-            (_, value) => (typeof value === 'bigint' ? value.toString() : value),
-          ),
+          body: safeJsonStringify({
+            aaWallet: aaWalletAddress,
+            sessionId: lastSessionId,
+            recipient: demoPaymentRecipient,
+            amount: demoPaymentAmount,
+            validBefore,
+            nonce,
+          }),
         })
         if (!executeResponse.ok) {
           const errorBody = await executeResponse.json().catch(() => null)
@@ -800,17 +810,14 @@ export default function Home() {
       const executeResponse = await fetch('/api/agent-execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(
-          {
-            aaWallet: aaWalletAddress,
-            sessionId: lastSessionId,
-            recipient: transferRecipient,
-            amount: transferAmount,
-            validBefore,
-            nonce,
-          },
-          (_, value) => (typeof value === 'bigint' ? value.toString() : value),
-        ),
+        body: safeJsonStringify({
+          aaWallet: aaWalletAddress,
+          sessionId: lastSessionId,
+          recipient: transferRecipient,
+          amount: transferAmount,
+          validBefore,
+          nonce,
+        }),
       })
       if (!executeResponse.ok) {
         const errorBody = await executeResponse.json().catch(() => null)
@@ -993,7 +1000,7 @@ export default function Home() {
               }
             }}
             isPending={isMasterPending}
-            error={masterError}
+            error={masterErrorMessage ? { message: masterErrorMessage } : null}
             validationError={masterValidationError}
             txHash={txHash}
           />
@@ -1073,7 +1080,9 @@ export default function Home() {
                 }
               }}
               isPending={isSessionPending}
-              error={sessionError}
+              error={
+                sessionErrorMessage ? { message: sessionErrorMessage } : null
+              }
               validationError={sessionValidationError}
               txHash={sessionTxHash}
               lastSessionId={lastSessionId}
