@@ -130,7 +130,7 @@
 - 本 Demo 为简化流程，使用普通 EOA 地址代替派生的 agent 地址，所以需要提供一个 AGENT_PRIVATE_KEY。
 
 3. **配置环境**
-   在 `.env.local` 中填入 Agent 私钥：
+   在 `frontend_demo/.env.local` 中填入 Agent 私钥：
 
    ```env
    # Agent 私钥 (用于 Demo 演示代执行，无需 0x 前缀)
